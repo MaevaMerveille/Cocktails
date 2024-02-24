@@ -2,11 +2,15 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Button } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons'; 
+
+
 
 function HomeScreen({ navigation }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Home Screen</Text>
+      <Text>Hommmme Screen</Text>
       <Button
         title="Go to Details"
         onPress={() => {
@@ -20,6 +24,8 @@ function HomeScreen({ navigation }) {
     </View>
   );
 }
+
+
 
 function DetailsScreen({ route, navigation }) {
   /* 2. Get the param */
@@ -42,39 +48,80 @@ function DetailsScreen({ route, navigation }) {
     </View>
   );
 }
-function StackScreen() {
+
+const Stack = createNativeStackNavigator();
+
+function MainHomeScreen() {
   return (
-    <Stack.Navigator>
+    // <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <>
+      <Stack.Navigator initialRouteName='Home'>
       <Stack.Screen
         name="Home"
         component={HomeScreen}
-        options={{ title: 'My home' }}
+        options={{ headerShown: false }} // Désactiver l'affichage du header
       />
-    </Stack.Navigator>
+        <Stack.Screen name="Details" component={DetailsScreen}  initialParams={{ itemId: 42 }}/>
+      </Stack.Navigator>
+      </>
+    /* </View> */  );
+}
+
+function CategoryScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>category!</Text>
+    </View>
   );
 }
-const Stack = createNativeStackNavigator();
+
+function FavoritesScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Favorites!</Text>
+    </View>
+  );
+}
+
+const Tab = createBottomTabNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          title: 'My home',
-          headerStyle: {
-            backgroundColor: '#f4511e',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      />
-        <Stack.Screen name="Details" component={DetailsScreen}  initialParams={{ itemId: 42 }}/>
-      </Stack.Navigator>
+      <Tab.Navigator
+            screenOptions={({ route}) => ({
+              headerStyle: {
+                backgroundColor: '#f4511e',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              tabBarIcon: ({ focused, color, size }) => {
+                let iconName;
+    
+                if (route.name === 'MainHome') {
+                  iconName = focused ? 'home' : 'home-outline';
+                } else if (route.name === 'Category') {
+                  iconName = focused ? 'list' : 'list-outline';
+                } else if (route.name === 'favorites') {
+                  iconName = focused ? 'heart' : 'heart-outline';
+                }
+    
+                return <Ionicons name={iconName} size={size} color={color} />;
+              },
+    
+            })}
+            tabBarOptions={{
+              activeTintColor: 'tomato',
+              inactiveTintColor: 'gray',
+            }}
+      >
+        <Tab.Screen name="MainHome" component={MainHomeScreen}  options={{ title: 'My home' }}/>
+        <Tab.Screen name="Category" component={CategoryScreen} options={{ title: 'Category' }} />
+        <Tab.Screen name="favorites" component={FavoritesScreen} options={{ title: 'favorites' }} />
+      </Tab.Navigator>
+      
     </NavigationContainer>
   );
 }
