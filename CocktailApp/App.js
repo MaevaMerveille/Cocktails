@@ -1,50 +1,121 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Button, Image, FlatList, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons'; 
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
+
+const API_URL = 'https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=';
 
 
 function HomeScreen({ navigation }) {
+  const [cocktails, setCocktails] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchCocktails();
+  }, []);
+
+  const fetchCocktails = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`https://www.thecocktaildb.com/api/json/v1/1/search.php?f=a&page=${page}`);
+      const newCocktails = response.data.drinks || [];
+      setCocktails(prevCocktails => [...prevCocktails, ...newCocktails]);
+    } catch (error) {
+      console.error('Error fetching cocktails:', error);
+    }
+    setLoading(false);
+  };
+
+  const handleCocktailPress = (id) => {
+    navigation.navigate('Details', { cocktailId: id });
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity onPress={() => handleCocktailPress(item.idDrink)}>
+      <View style={styles.item}>
+        <Image style={styles.image} source={{ uri: item.strDrinkThumb }} />
+        <Text style={styles.title}>{item.strDrink}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const handleLoadMore = () => {
+    if (!loading) {
+      setPage(prevPage => prevPage + 1);
+    }
+  };
+
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Hommmme Screen</Text>
-      <Button
-        title="Go to Details"
-        onPress={() => {
-          /* 1. Navigate to the Details route with params */
-          navigation.navigate('Details', {
-            itemId: 89,
-            otherParam: 'anything you want here',
-          });
-        }}
-      />
-    </View>
+    <FlatList
+      data={cocktails}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.idDrink}
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={loading && <Text>Loading...</Text>}
+    />
   );
 }
 
 
+const getIngredientsList = (cocktailDetails) => {
+  const ingredientsList = [];
+  for (let i = 1; i <= 15; i++) {
+    const ingredient = cocktailDetails['strIngredient' + i];
+    const measure = cocktailDetails['strMeasure' + i];
+    if (ingredient) {
+      const ingredientWithMeasure = measure ? `${measure} ${ingredient}` : ingredient;
+      ingredientsList.push(ingredientWithMeasure);
+    } else {
+      break; // No more ingredients
+    }
+  }
+  return ingredientsList;
+};
 
 function DetailsScreen({ route, navigation }) {
   /* 2. Get the param */
-  const { itemId, otherParam } = route.params;
+  const [cocktailDetails, setCocktailDetails] = useState(null);
+
+  useEffect(() => {
+    const { cocktailId } = route.params;
+    const fetchCocktailDetails = async () => {
+      try {
+        const response = await axios.get(API_URL + cocktailId);
+        setCocktailDetails(response.data.drinks[0]); // Assuming the API response has a "drinks" array
+      } catch (error) {
+        console.error('Error fetching cocktail details:', error);
+      }
+    };
+
+    fetchCocktailDetails();
+  }, [route.params]);
+
+  if (!cocktailDetails) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Details Screen</Text>
-      <Text>itemId: {JSON.stringify(itemId)}</Text>
-      <Text>otherParam: {JSON.stringify(otherParam)}</Text>
-      <Button
-        title="Go to Details... again"
-        onPress={() =>
-          navigation.push('Details', {
-            itemId: Math.floor(Math.random() * 100),
-          })
-        }
+    <View style={{ flex: 1, alignItems: 'center', padding: 20 }}>
+      <Image source={{ uri: cocktailDetails.strDrinkThumb }} style={{ width: 200, height: 200, marginBottom: 20 }} />
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>{cocktailDetails.strDrink}</Text>
+      <Text style={{ fontSize: 16, marginBottom: 20 }}>{cocktailDetails.strInstructions}</Text>
+      <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Ingredients:</Text>
+      <FlatList
+        data={getIngredientsList(cocktailDetails)}
+        renderItem={({ item }) => <Text>{item}</Text>}
+        keyExtractor={(item) => item}
       />
-      <Button title="Go to Home" onPress={() => navigation.navigate('Home')} />
-      <Button title="Go back" onPress={() => navigation.goBack()} />
     </View>
   );
 }
@@ -132,5 +203,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  item: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  image: {
+    width: 50,
+    height: 50,
+    marginRight: 20,
+  },
+  title: {
+    fontSize: 16,
   },
 });
