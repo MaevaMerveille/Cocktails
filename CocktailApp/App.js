@@ -157,7 +157,7 @@ function MainHomeScreen() {
     /* </View> */  );
 }
 
-function CategoryScreen() {
+function CategoryScreen({ navigation }) {
   const API_URL = 'https://www.thecocktaildb.com/api/json/v1/1/';
 
   const [categories, setCategories] = useState([]);
@@ -189,6 +189,10 @@ function CategoryScreen() {
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
     fetchCocktailsByCategory(category);
+  };
+
+  const handleCocktailPress = (id) => {
+    navigation.navigate('Details', { cocktailId: id });
   };
 
   const renderItem = ({ item }) => (
