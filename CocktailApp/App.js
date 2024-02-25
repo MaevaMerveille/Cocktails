@@ -19,6 +19,11 @@ function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [likedCocktails, setLikedCocktails] = useState([]);
 
+  const isCloseToBottom = ({ layoutMeasurement, contentOffset, contentSize }) => {
+    const paddingToBottom = 20;
+    return layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - paddingToBottom;
+  };
 
   useEffect(() => {
     fetchCocktails();
@@ -27,9 +32,10 @@ function HomeScreen({ navigation }) {
   const fetchCocktails = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`https://www.thecocktaildb.com/api/json/v1/1/search.php?f=a&page=${page}`);
+      const response = await axios.get(`https://www.thecocktaildb.com/api/json/v1/1/search.php?f=${String.fromCharCode(page + 97)}&page=${page}`);
       const newCocktails = response.data.drinks || [];
       setCocktails(prevCocktails => [...prevCocktails, ...newCocktails]);
+      setPage(prevPage => prevPage + 1); // Incrémentez la page pour la prochaine lettre
     } catch (error) {
       console.error('Error fetching cocktails:', error);
     }
@@ -71,16 +77,21 @@ function HomeScreen({ navigation }) {
     }
   };
 
-  return (
-    <FlatList
-      data={cocktails}
-      renderItem={renderItem}
-      keyExtractor={(item) => item.idDrink}
-      onEndReached={handleLoadMore}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={loading && <Text>Loading...</Text>}
-    />
-  );
+return (
+  <FlatList
+    data={cocktails}
+    renderItem={renderItem}
+    keyExtractor={(item) => item.idDrink}
+    onEndReached={handleLoadMore} // call sur la fonction handleLoadMore
+    onEndReachedThreshold={0.1} 
+    ListFooterComponent={loading && <Text>Loading...</Text>}
+    onScroll={({ nativeEvent }) => {
+      if (isCloseToBottom(nativeEvent)) {
+        handleLoadMore();
+      }
+    }}
+  />
+);
 }
 
 
