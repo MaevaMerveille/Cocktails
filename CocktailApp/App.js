@@ -15,6 +15,8 @@ function HomeScreen({ navigation }) {
   const [cocktails, setCocktails] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [likedCocktails, setLikedCocktails] = useState([]);
+
 
   useEffect(() => {
     fetchCocktails();
@@ -36,11 +38,27 @@ function HomeScreen({ navigation }) {
     navigation.navigate('Details', { cocktailId: id });
   };
 
+  // Fonction pour gérer les clics sur l'icône de cœur
+  const toggleLike = (cocktailId) => {
+    if (likedCocktails.includes(cocktailId)) {
+      setLikedCocktails(likedCocktails.filter((id) => id !== cocktailId));
+    } else {
+      setLikedCocktails([...likedCocktails, cocktailId]);
+    }
+  };
+
   const renderItem = ({ item }) => (
     <TouchableOpacity onPress={() => handleCocktailPress(item.idDrink)}>
       <View style={styles.item}>
         <Image style={styles.image} source={{ uri: item.strDrinkThumb }} />
         <Text style={styles.title}>{item.strDrink}</Text>
+        <TouchableOpacity onPress={() => toggleLike(item.idDrink)}>
+          <Ionicons
+            name={likedCocktails.includes(item.idDrink) ? 'heart' : 'heart-outline'}
+            size={24}
+            color={likedCocktails.includes(item.idDrink) ? 'red' : 'black'}
+          />
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -80,7 +98,6 @@ const getIngredientsList = (cocktailDetails) => {
 };
 
 function DetailsScreen({ route, navigation }) {
-  /* 2. Get the param */
   const [cocktailDetails, setCocktailDetails] = useState(null);
 
   useEffect(() => {
@@ -88,7 +105,7 @@ function DetailsScreen({ route, navigation }) {
     const fetchCocktailDetails = async () => {
       try {
         const response = await axios.get(API_URL + cocktailId);
-        setCocktailDetails(response.data.drinks[0]); // Assuming the API response has a "drinks" array
+        setCocktailDetails(response.data.drinks[0]); 
       } catch (error) {
         console.error('Error fetching cocktail details:', error);
       }
@@ -146,10 +163,36 @@ function CategoryScreen() {
   );
 }
 
-function FavoritesScreen() {
+function FavoritesScreen({ likedCocktails, handleCocktailPress }) {
+  const [favorites, setFavorites] = useState(likedCocktails); // Initialisez l'état favorites avec likedCocktails
+
+  // Fonction pour gérer le clic sur le bouton de suppression du cocktail des favoris
+  const handleRemoveFavorite = (cocktailId) => {
+    const updatedFavorites = favorites.filter((item) => item.idDrink !== cocktailId);
+    setFavorites(updatedFavorites);
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity onPress={() => handleCocktailPress(item.idDrink)}>
+      <View style={styles.item}>
+        <Image style={styles.image} source={{ uri: item.strDrinkThumb }} />
+        <Text style={styles.title}>{item.strDrink}</Text>
+        <TouchableOpacity onPress={() => handleRemoveFavorite(item.idDrink)}>
+          <Ionicons name="heart" size={24} color="red" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Favorites!</Text>
+      <Text style={{ fontSize: 20, marginBottom: 10 }}>Favorites</Text>
+      <FlatList
+        data={favorites}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.idDrink}
+        contentContainerStyle={{ flexGrow: 1 }}
+      />
     </View>
   );
 }
